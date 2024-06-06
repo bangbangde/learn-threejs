@@ -8,6 +8,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView
+    },
+    {
+      path: '/webgl',
+      name: 'webgl',
+      component: () => import('@/views/WebGLView.vue')
     }
   ]
 })
