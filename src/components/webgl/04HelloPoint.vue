@@ -37,8 +37,9 @@ function handleMousedown(ev) {
   points.value.forEach((point) => {
     gl.$setAPosition(...point[0]);
     gl.$setUFragColor(...point[1]);
-    gl.drawArrays(gl.POINTS, 0, 1);
+    gl.drawArrays(gl.POINTS, 0, 1); // 必须在这里同步地 draw 才能将多个点都绘制出来
   })
+  // gl.drawArrays(gl.POINTS, 0, points.value.length); // 猜测错误，在这里 draw 只会绘制一个点
 }
 
 function initGL() {
