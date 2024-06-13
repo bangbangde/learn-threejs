@@ -1,35 +1,28 @@
 <template>
   <div>
-    <h1>画一个三角形 - 使用矩阵lib</h1>
+    <h1>画一个三角形 - 动画</h1>
     <GLCanvas ref="glCanvas" />
-    <input type="range" v-model="angle" min="0" max="360" step="1">
-    <div style="display: flex; flex-direction: column; flex-wrap: wrap;line-height: 40px;width: 160px;height: 160px;">
-      <span v-for="(item, i) in matrix" :key="i" style="width: 40px; height: 40px; text-align: center; overflow: hidden;">{{ item }}</span>
+    <div>
+      <label>
+        speed:
+        <input type="range" v-model="speed" min="0.1" max="10" step="0.1">
+      </label>
+      <p>{{ speed * 1000 }} 度/秒</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import GLCanvas from "./GLCanvas.vue";
 import { initShaders } from "@/lib/webgl-helpers.js";
 import Matrix4 from "@/lib/cuon-matrix";
 
 const glCanvas = ref(null);
-const angle = ref(0);
-const matrix = ref([]); // 列主序
-
-watch(angle, value => {
-  const gl = glCanvas.value.gl;
-  if (!gl) return;
-  gl.$rotate(value);
-  gl.$draw();
-});
+const speed = ref(0.1);
 
 onMounted(() => {
   const gl = glCanvas.value.gl;
-
-  gl.clearColor(0.0, 0.0, 0.0, 1.0); // 以 RGBA 格式设置颜色，取值范围从 0.0 到 1.0
 
   // 顶点着色器
   const VSHADER_SOURCE = 
@@ -79,23 +72,31 @@ onMounted(() => {
 
   const n = initVertexBUffers(gl);
 
-  gl.$rotate = (angle) => {
-    const xformMatrix = new Matrix4();
-    // xformMatrix.setRotate(angle, 0, 0, 1);
-    // xformMatrix.translate(angle / 360, 0, 0);
-    xformMatrix.setTranslate(angle / 360, 0, 0);
-    xformMatrix.rotate(angle, 0, 0, 1);
-    matrix.value = xformMatrix.elements;
-    gl.uniformMatrix4fv(u_xformMatrix, false, xformMatrix.elements);
-  };
+  gl.clearColor(0.0, 0.0, 0.0, 1.0); // 以 RGBA 格式设置颜色，取值范围从 0.0 到 1.0
+  gl.clear(gl.COLOR_BUFFER_BIT);     // 传入 gl.COLOR_BUFFER_BIT 常量，表示要清空的是“颜色缓冲区”
 
-  gl.$draw = () => {
+  let currentAngle;
+  let zero;
+
+  function tick(timeStamp) {
+    if (!zero) {
+      zero = timeStamp;
+      currentAngle = 0;
+    } else {
+      currentAngle = ((timeStamp - zero) * speed.value) % 360; 
+    }
+    const modelMatrix = new Matrix4();
+    modelMatrix.setRotate(currentAngle, 0, 0, 1);
+    // modelMatrix.translate(0.2, 0, 0);
+    gl.uniformMatrix4fv(u_xformMatrix, false, modelMatrix.elements);
+
     gl.clear(gl.COLOR_BUFFER_BIT);     // 传入 gl.COLOR_BUFFER_BIT 常量，表示要清空的是“颜色缓冲区”
     gl.drawArrays(gl.TRIANGLES, 0, n);
+
+    requestAnimationFrame(tick);
   }
 
-  gl.$rotate(0);
-  gl.$draw();
+  tick();
 });
 
 
